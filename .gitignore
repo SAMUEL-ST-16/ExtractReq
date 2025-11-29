@@ -1,0 +1,13 @@
+# Test files
+test_*.py
+test_*.json
+test_*.pdf
+
+# Generated files
+*.pdf
+flashscore_*.pdf
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
