@@ -1,12 +1,7 @@
 #cloud-config
-# Cloud-init configuration para ExtractReq
-# Este script se ejecuta automáticamente cuando el droplet se crea
-
-# Actualizar paquetes al inicio
 package_update: true
 package_upgrade: true
 
-# Paquetes a instalar
 packages:
   - git
   - curl
@@ -17,29 +12,20 @@ packages:
   - ufw
   - certbot
   - python3-certbot-nginx
-  - supervisor
 
-# Comandos a ejecutar (runcmd se ejecuta en orden)
 runcmd:
-  # ========== PASO 1: Instalar Python 3.11 ==========
   - echo "==> Instalando Python 3.11..."
   - add-apt-repository -y ppa:deadsnakes/ppa
   - apt-get update -y
   - apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
   - update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
   - update-alternatives --set python3 /usr/bin/python3.11
-
-  # ========== PASO 2: Instalar Node.js 18 ==========
   - echo "==> Instalando Node.js 18..."
   - curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
   - apt-get install -y nodejs
   - npm install -g @angular/cli@21
-
-  # ========== PASO 3: Crear usuario del sistema ==========
   - echo "==> Creando usuario extractreq..."
   - useradd -m -s /bin/bash extractreq || true
-
-  # ========== PASO 4: Clonar repositorio ==========
   - echo "==> Clonando repositorio desde GitHub..."
   - mkdir -p /opt/extractreq
   - cd /tmp
@@ -47,14 +33,10 @@ runcmd:
   - cp -r extractreq-temp/Backend /opt/extractreq/
   - cp -r extractreq-temp/Frontend /opt/extractreq/
   - rm -rf extractreq-temp
-
-  # ========== PASO 5: Configurar Backend ==========
   - echo "==> Configurando Backend..."
   - cd /opt/extractreq/Backend
-
-  # Crear archivo .env
   - |
-    cat > /opt/extractreq/Backend/.env <<EOF
+    cat > /opt/extractreq/Backend/.env << 'ENVEOF'
     HUGGINGFACE_API_TOKEN=${hf_token}
     BINARY_MODEL_NAME=${binary_model}
     MULTICLASS_MODEL_NAME=${multiclass_model}
@@ -82,39 +64,28 @@ runcmd:
     PLAYSTORE_TARGET_REQUIREMENTS=30
     PLAYSTORE_BATCH_SIZE=50
     PLAYSTORE_MAX_TOTAL_COMMENTS=500
-    EOF
-
-  # Instalar dependencias de Python
+    ENVEOF
   - cd /opt/extractreq/Backend
   - python3.11 -m venv venv
   - /opt/extractreq/Backend/venv/bin/pip install --upgrade pip
   - /opt/extractreq/Backend/venv/bin/pip install -r requirements.txt
-
-  # ========== PASO 6: Compilar Frontend ==========
   - echo "==> Compilando Frontend..."
   - cd /opt/extractreq/Frontend
-
-  # Obtener IP pública del droplet
-  - PUBLIC_IP=$(curl -s ifconfig.me)
-
-  # Configurar environment.prod.ts
+  - export PUBLIC_IP=$(curl -s ifconfig.me)
   - |
-    cat > /opt/extractreq/Frontend/src/environments/environment.prod.ts <<EOF
+    cat > /opt/extractreq/Frontend/src/environments/environment.prod.ts << 'TSEOF'
     export const environment = {
       production: true,
-      apiUrl: 'http://$PUBLIC_IP/api/requirements'
+      apiUrl: 'http://PLACEHOLDER_IP/api/requirements'
     };
-    EOF
-
-  # Instalar dependencias y compilar
+    TSEOF
+  - sed -i "s/PLACEHOLDER_IP/$PUBLIC_IP/g" /opt/extractreq/Frontend/src/environments/environment.prod.ts
   - cd /opt/extractreq/Frontend
   - npm install
   - npm run build
-
-  # ========== PASO 7: Configurar servicio systemd para Backend ==========
   - echo "==> Configurando servicio systemd..."
   - |
-    cat > /etc/systemd/system/extractreq-backend.service <<EOF
+    cat > /etc/systemd/system/extractreq-backend.service << 'SVCEOF'
     [Unit]
     Description=ExtractReq FastAPI Backend
     After=network.target
@@ -130,118 +101,70 @@ runcmd:
 
     [Install]
     WantedBy=multi-user.target
-    EOF
-
-  # Cambiar permisos
+    SVCEOF
   - chown -R extractreq:extractreq /opt/extractreq
-
-  # Habilitar e iniciar servicio
   - systemctl daemon-reload
   - systemctl enable extractreq-backend
   - systemctl start extractreq-backend
-
-  # ========== PASO 8: Configurar Nginx ==========
   - echo "==> Configurando Nginx..."
   - |
-    cat > /etc/nginx/sites-available/extractreq <<EOF
+    cat > /etc/nginx/sites-available/extractreq << 'NGXEOF'
     server {
         listen 80;
         server_name _;
-
         root /opt/extractreq/Frontend/dist/ExtractReq/browser;
         index index.html;
-
         gzip on;
-        gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+        gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
         gzip_vary on;
-        gzip_proxied any;
-        gzip_comp_level 6;
-
         location / {
-            try_files \$uri \$uri/ /index.html;
+            try_files $uri $uri/ /index.html;
         }
-
         location /api/ {
             proxy_pass http://127.0.0.1:8000/api/;
             proxy_http_version 1.1;
-            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection 'upgrade';
-            proxy_set_header Host \$host;
-            proxy_cache_bypass \$http_upgrade;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
             proxy_connect_timeout 300s;
             proxy_send_timeout 300s;
             proxy_read_timeout 300s;
         }
-
         location /health {
             proxy_pass http://127.0.0.1:8000/health;
-            proxy_set_header Host \$host;
+            proxy_set_header Host $host;
         }
-
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
             expires 1y;
             add_header Cache-Control "public, immutable";
         }
-
-        add_header X-Frame-Options "SAMEORIGIN" always;
-        add_header X-Content-Type-Options "nosniff" always;
-        add_header X-XSS-Protection "1; mode=block" always;
     }
-    EOF
-
-  # Habilitar sitio
+    NGXEOF
   - ln -sf /etc/nginx/sites-available/extractreq /etc/nginx/sites-enabled/
   - rm -f /etc/nginx/sites-enabled/default
   - nginx -t
   - systemctl restart nginx
   - systemctl enable nginx
-
-  # ========== PASO 9: Configurar Firewall ==========
   - echo "==> Configurando firewall..."
   - ufw --force enable
   - ufw default deny incoming
   - ufw default allow outgoing
   - ufw allow ssh
   - ufw allow 'Nginx Full'
-
-  # ========== PASO 10: Crear archivo de estado ==========
   - echo "==> Despliegue completado!"
   - |
-    cat > /root/deployment-info.txt <<EOF
+    cat > /root/deployment-info.txt << 'INFOEOF'
     ================================================
       ExtractReq - Deployment Information
     ================================================
-
-    Deployed at: $(date)
-    IP Address: $(curl -s ifconfig.me)
-
-    URLs:
-    - Frontend: http://$(curl -s ifconfig.me)
-    - Backend Docs: http://$(curl -s ifconfig.me)/api/requirements/docs
-    - Health Check: http://$(curl -s ifconfig.me)/health
-
-    Logs:
-    - Backend: sudo journalctl -u extractreq-backend -f
-    - Nginx: sudo tail -f /var/log/nginx/error.log
-    - Cloud-init: tail -f /var/log/cloud-init-output.log
-
+    Deployed successfully via cloud-init
+    Check services with: systemctl status extractreq-backend nginx
     ================================================
-    EOF
-
+    INFOEOF
   - cat /root/deployment-info.txt
 
-# Mensaje final
-final_message: |
-  ================================================
-    ✅ ExtractReq Cloud-Init Completed!
-  ================================================
-
-  El servidor está configurado y la aplicación está desplegada.
-
-  Para más información:
-  cat /root/deployment-info.txt
-
-  ================================================
+final_message: "ExtractReq deployment completed via cloud-init"
