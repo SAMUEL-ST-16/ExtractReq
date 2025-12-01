@@ -66,7 +66,7 @@ runcmd:
   - sed -i "s/PLACEHOLDER_IP/$PUBLIC_IP/g" /opt/extractreq/Frontend/src/environments/environment.prod.ts
   - cd /opt/extractreq/Frontend
   - npm install
-  - npm run build
+  - npm run build -- --configuration production --optimization=false
   - echo "==> Configurando servicio systemd..."
   - |
     cat > /etc/systemd/system/extractreq-backend.service << 'SVCEOF'
