@@ -20,10 +20,13 @@ runcmd:
   - apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
   - update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
   - update-alternatives --set python3 /usr/bin/python3.11
-  - echo "==> Instalando Node.js 20 LTS..."
-  - curl -fsSL https://deb.nodesource.com/setup_20.x -o /tmp/nodesource_setup.sh
-  - bash /tmp/nodesource_setup.sh
-  - apt-get install -y nodejs
+  - echo "==> Instalando Node.js 20 LTS desde binarios oficiales..."
+  - cd /tmp
+  - wget https://nodejs.org/dist/v20.18.1/node-v20.18.1-linux-x64.tar.xz
+  - tar -xJf node-v20.18.1-linux-x64.tar.xz
+  - cp -r node-v20.18.1-linux-x64/* /usr/local/
+  - ln -sf /usr/local/bin/node /usr/bin/node
+  - ln -sf /usr/local/bin/npm /usr/bin/npm
   - node --version
   - npm --version
   - npm install -g @angular/cli@21
