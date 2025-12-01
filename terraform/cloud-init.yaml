@@ -43,11 +43,17 @@ runcmd:
   - cd /opt/extractreq/Backend
   - |
     cat > /opt/extractreq/Backend/.env << 'ENVEOF'
-    HUGGINGFACE_API_TOKEN=${hf_token}
+    HUGGINGFACE_TOKEN=${hf_token}
     BINARY_MODEL_NAME=${binary_model}
     MULTICLASS_MODEL_NAME=${multiclass_model}
     GROQ_API_KEY=${groq_key}
     OPENAI_API_KEY=${openai_key}
+    PROVIDER=groq
+    HOST=0.0.0.0
+    PORT=8000
+    LOG_LEVEL=INFO
+    RELOAD=False
+    WORKERS=1
     ENVEOF
   - cd /opt/extractreq/Backend
   - python3.11 -m venv venv
