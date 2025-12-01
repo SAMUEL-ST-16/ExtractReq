@@ -162,11 +162,11 @@ DROPLET_REGION=${DROPLET_REGION:-nyc1}
 # Tamaño
 echo ""
 echo "Tamaño del droplet:"
-echo "  s-1vcpu-1gb = \$6/mes (suficiente para tesis)"
-echo "  s-1vcpu-2gb = \$12/mes (más memoria)"
+echo "  s-1vcpu-1gb = \$6/mes (1GB RAM)"
+echo "  s-1vcpu-2gb = \$12/mes (2GB RAM - recomendado)"
 echo "  s-2vcpu-2gb = \$18/mes (más potencia)"
-read -p "Tamaño [s-1vcpu-1gb]: " DROPLET_SIZE
-DROPLET_SIZE=${DROPLET_SIZE:-s-1vcpu-1gb}
+read -p "Tamaño [s-1vcpu-2gb]: " DROPLET_SIZE
+DROPLET_SIZE=${DROPLET_SIZE:-s-1vcpu-2gb}
 
 # Modelos
 echo ""

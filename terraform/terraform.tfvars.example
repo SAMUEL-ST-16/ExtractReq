@@ -10,10 +10,10 @@ ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... tu-usuario@tu-compu
 droplet_region = "nyc1"
 
 # Tamaño del droplet
-# s-1vcpu-1gb ($6/mes) - Suficiente para tesis
-# s-1vcpu-2gb ($12/mes) - Más memoria
-# s-2vcpu-2gb ($18/mes) - Más potencia
-droplet_size = "s-1vcpu-1gb"
+# s-1vcpu-1gb ($6/mes) - 1GB RAM
+# s-1vcpu-2gb ($12/mes) - 2GB RAM (recomendado)
+# s-2vcpu-2gb ($18/mes) - 2 vCPUs, 2GB RAM
+droplet_size = "s-1vcpu-2gb"
 
 # ========== GitHub Repository ==========
 github_repo = "https://github.com/tu-usuario/ExtractReq.git"

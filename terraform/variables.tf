@@ -22,10 +22,10 @@ variable "droplet_region" {
 variable "droplet_size" {
   description = "Tamaño del droplet"
   type        = string
-  default     = "s-1vcpu-1gb"  # $6/mes - suficiente para tesis
+  default     = "s-1vcpu-2gb"  # $12/mes - 2GB RAM
 
   # Otras opciones:
-  # s-1vcpu-2gb = $12/mes (2GB RAM)
+  # s-1vcpu-1gb = $6/mes (1GB RAM)
   # s-2vcpu-2gb = $18/mes (2 vCPUs, 2GB RAM)
 }
 

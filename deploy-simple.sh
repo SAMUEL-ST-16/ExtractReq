@@ -57,10 +57,15 @@ read -p "Ingresa la URL de tu repositorio de GitHub: " GITHUB_REPO
 # Actualizar terraform.tfvars con la SSH key y repo
 cd terraform
 
+# Crear copia de respaldo (compatible con Linux y macOS)
+cp terraform.tfvars terraform.tfvars.bak
+
 # Reemplazar placeholder de SSH key y GitHub repo
-sed -i.bak "s|ssh_public_key = \"PLACEHOLDER - Se reemplazará por auto-deploy.sh\"|ssh_public_key = \"$SSH_PUBLIC_KEY\"|" terraform.tfvars
-sed -i.bak "s|github_repo = \"https://github.com/TU_USUARIO/ExtractReq.git\"|github_repo = \"$GITHUB_REPO\"|" terraform.tfvars
-rm terraform.tfvars.bak
+sed -i "s|ssh_public_key = \"PLACEHOLDER - Se reemplazará por auto-deploy.sh\"|ssh_public_key = \"$SSH_PUBLIC_KEY\"|" terraform.tfvars
+sed -i "s|github_repo = \"https://github.com/TU_USUARIO/ExtractReq.git\"|github_repo = \"$GITHUB_REPO\"|" terraform.tfvars
+
+# Eliminar copia de respaldo si todo salió bien
+rm -f terraform.tfvars.bak
 
 echo -e "${GREEN}✓ Configuración actualizada${NC}"
 echo ""

@@ -30,9 +30,9 @@ resource "digitalocean_droplet" "extractreq" {
   region = var.droplet_region
 
   # Tamaño del servidor
-  # s-1vcpu-1gb = $6/mes (suficiente para tesis)
-  # s-1vcpu-2gb = $12/mes (más memoria)
-  # s-2vcpu-2gb = $18/mes (más potencia)
+  # s-1vcpu-1gb = $6/mes (1GB RAM)
+  # s-1vcpu-2gb = $12/mes (2GB RAM - recomendado)
+  # s-2vcpu-2gb = $18/mes (2 vCPUs, 2GB RAM)
   size   = var.droplet_size
 
   # Imagen del sistema operativo
