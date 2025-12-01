@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(ng version:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []
