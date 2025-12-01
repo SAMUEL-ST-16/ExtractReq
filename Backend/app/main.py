@@ -129,6 +129,18 @@ async def root():
     }
 
 
+@app.get("/health", tags=["Health"])
+async def health():
+    """
+    Health check endpoint for load balancers/monitoring
+    """
+    return {
+        "status": "healthy",
+        "service": "extractreq-backend",
+        "version": settings.API_VERSION
+    }
+
+
 # ========== Run Application ==========
 
 if __name__ == "__main__":
