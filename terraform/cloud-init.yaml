@@ -24,7 +24,7 @@ runcmd:
   - curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
   - apt-get install -y nodejs
   - hash -r
-  - which npm || echo "ERROR: npm not found after installation"
+  - which npm || echo 'ERROR npm not found after installation'
   - /usr/bin/npm install -g @angular/cli@21
   - echo "==> Creando usuario extractreq..."
   - useradd -m -s /bin/bash extractreq || true
