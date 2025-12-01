@@ -20,12 +20,13 @@ runcmd:
   - apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
   - update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
   - update-alternatives --set python3 /usr/bin/python3.11
-  - echo "==> Instalando Node.js 18..."
-  - curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+  - echo "==> Instalando Node.js 20 LTS..."
+  - curl -fsSL https://deb.nodesource.com/setup_20.x -o /tmp/nodesource_setup.sh
+  - bash /tmp/nodesource_setup.sh
   - apt-get install -y nodejs
-  - hash -r
-  - which npm || echo 'ERROR npm not found after installation'
-  - /usr/bin/npm install -g @angular/cli@21
+  - node --version
+  - npm --version
+  - npm install -g @angular/cli@21
   - echo "==> Creando usuario extractreq..."
   - useradd -m -s /bin/bash extractreq || true
   - echo "==> Clonando repositorio desde GitHub..."
@@ -42,30 +43,8 @@ runcmd:
     HUGGINGFACE_API_TOKEN=${hf_token}
     BINARY_MODEL_NAME=${binary_model}
     MULTICLASS_MODEL_NAME=${multiclass_model}
-    MODEL_DEVICE=-1
-    API_TITLE=ExtractReq API
-    API_DESCRIPTION=API for extracting and classifying requirements using BERT models
-    API_VERSION=1.0.0
-    API_HOST=0.0.0.0
-    API_PORT=8000
-    CORS_ORIGINS=["*"]
-    LOG_LEVEL=INFO
-    MAX_TEXT_LENGTH=10000
-    MIN_TEXT_LENGTH=1
-    LAZY_MODEL_LOADING=true
-    LLM_PROVIDER=${llm_provider}
     GROQ_API_KEY=${groq_key}
-    GROQ_MODEL=llama-3.1-70b-versatile
     OPENAI_API_KEY=${openai_key}
-    OPENAI_MODEL=gpt-4o-mini
-    PLAYSTORE_MIN_WORDS=15
-    PLAYSTORE_MIN_RATING=2
-    PLAYSTORE_MAX_RATING=3
-    PLAYSTORE_LANG=es
-    PLAYSTORE_COUNTRY=pe
-    PLAYSTORE_TARGET_REQUIREMENTS=30
-    PLAYSTORE_BATCH_SIZE=50
-    PLAYSTORE_MAX_TOTAL_COMMENTS=500
     ENVEOF
   - cd /opt/extractreq/Backend
   - python3.11 -m venv venv
@@ -83,8 +62,8 @@ runcmd:
     TSEOF
   - sed -i "s/PLACEHOLDER_IP/$PUBLIC_IP/g" /opt/extractreq/Frontend/src/environments/environment.prod.ts
   - cd /opt/extractreq/Frontend
-  - /usr/bin/npm install
-  - /usr/bin/npm run build
+  - npm install
+  - npm run build
   - echo "==> Configurando servicio systemd..."
   - |
     cat > /etc/systemd/system/extractreq-backend.service << 'SVCEOF'
