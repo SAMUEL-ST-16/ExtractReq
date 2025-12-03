@@ -11,6 +11,7 @@ from fastapi import UploadFile
 from app.services.processing_service import processing_service
 from app.services.scraper_service import scraper_service
 from app.services.pdf_service import pdf_service
+from app.services.cache_service import cache_service
 from app.schemas.models import ProcessingResponse, RequirementResult
 from app.core.logger import get_logger
 from app.core.exceptions import FileProcessingException
@@ -144,13 +145,16 @@ class OrchestratorService:
         max_total_reviews: int = 500
     ) -> Tuple[ProcessingResponse, BytesIO]:
         """
-        Smart processing of Google Play Store URL
+        Smart processing of Google Play Store URL with Redis caching
 
         Strategy:
-        1. Scrape comments with quality filters (2-3 stars, 15+ words)
-        2. Process progressively until finding target_requirements valid requirements
-        3. Stop if max_total_reviews is reached
-        4. Return detailed statistics
+        1. Check cache first - return instantly if cached
+        2. If not cached:
+           - Scrape comments with quality filters (2-3 stars, 15+ words)
+           - Process progressively until finding target_requirements valid requirements
+           - Stop if max_total_reviews is reached
+           - Cache the result for 7 days
+        3. Return detailed statistics
 
         Args:
             url: Play Store app URL
@@ -162,6 +166,13 @@ class OrchestratorService:
         """
         logger.info(f"Orchestrating Smart Play Store processing: {url}")
         logger.info(f"Target: {target_requirements} requirements, Max: {max_total_reviews} reviews")
+
+        # Check cache first
+        cached_result = cache_service.get_cached_result(url)
+        if cached_result is not None:
+            logger.info("✓ Returning cached result (saved ~20 seconds)")
+            return cached_result
+
         start_time = time.time()
 
         # Smart scraping with filters
@@ -203,6 +214,12 @@ class OrchestratorService:
             f"{len(valid_requirements)} requirements found from "
             f"{scraping_stats['total_scraped']} reviews in {processing_time_ms:.2f}ms"
         )
+
+        # Cache the result for future requests
+        cache_service.cache_result(url, response, pdf_buffer)
+
+        # Reset PDF buffer position after caching
+        pdf_buffer.seek(0)
 
         return response, pdf_buffer
 

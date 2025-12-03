@@ -12,6 +12,7 @@ packages:
   - ufw
   - certbot
   - python3-certbot-nginx
+  - redis-server
 
 runcmd:
   - echo "==> Instalando Python 3.11..."
@@ -59,6 +60,9 @@ runcmd:
   - python3.11 -m venv venv
   - /opt/extractreq/Backend/venv/bin/pip install --upgrade pip
   - /opt/extractreq/Backend/venv/bin/pip install -r requirements.txt
+  - echo "==> Configurando Redis..."
+  - systemctl enable redis-server
+  - systemctl start redis-server
   - echo "==> Compilando Frontend..."
   - cd /opt/extractreq/Frontend
   - export PUBLIC_IP=$(curl -s ifconfig.me)
@@ -78,7 +82,8 @@ runcmd:
     cat > /etc/systemd/system/extractreq-backend.service << 'SVCEOF'
     [Unit]
     Description=ExtractReq FastAPI Backend
-    After=network.target
+    After=network.target redis-server.service
+    Requires=redis-server.service
 
     [Service]
     Type=simple
