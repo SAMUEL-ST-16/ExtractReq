@@ -3,7 +3,8 @@
     "allow": [
       "Bash(ng version:*)",
       "Bash(npm install:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(scp:*)"
     ],
     "deny": [],
     "ask": []

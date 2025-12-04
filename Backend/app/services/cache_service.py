@@ -18,8 +18,10 @@ class CacheService:
     """
     Service for caching ProcessingResponse and PDF results using Redis
 
-    Cache strategy:
-    - Key: SHA256 hash of PlayStore URL
+    Cache strategies:
+    - PlayStore URL: SHA256 hash of URL
+    - CSV file: SHA256 hash of file content
+    - Single comment: SHA256 hash of comment text
     - Value: JSON with ProcessingResponse + base64 PDF
     - TTL: 7 days (604800 seconds)
     """
@@ -55,24 +57,74 @@ class CacheService:
             logger.warning(f"⚠ Redis initialization failed: {e}. Cache disabled.")
             self.enabled = False
 
-    def _generate_cache_key(self, url: str) -> str:
+    def _generate_cache_key(self, content: str, prefix: str = "playstore") -> str:
         """
-        Generate a cache key from PlayStore URL
+        Generate a cache key from content
 
         Args:
-            url: PlayStore URL
+            content: Content to hash (URL, comment text, CSV content, etc.)
+            prefix: Cache key prefix (playstore, csv, comment)
 
         Returns:
             Cache key (SHA256 hash)
         """
-        # Normalize URL (lowercase, strip whitespace)
-        normalized_url = url.lower().strip()
+        # Normalize content (lowercase, strip whitespace)
+        normalized_content = content.lower().strip()
 
         # Generate SHA256 hash
-        hash_object = hashlib.sha256(normalized_url.encode())
-        cache_key = f"playstore:{hash_object.hexdigest()}"
+        hash_object = hashlib.sha256(normalized_content.encode())
+        cache_key = f"{prefix}:{hash_object.hexdigest()}"
 
         return cache_key
+
+    def _get_cached_result_generic(
+        self,
+        content: str,
+        prefix: str,
+        description: str
+    ) -> Optional[Tuple[ProcessingResponse, BytesIO]]:
+        """
+        Generic method to get cached result
+
+        Args:
+            content: Content to hash
+            prefix: Cache key prefix
+            description: Description for logging (e.g., "URL", "comment", "CSV")
+
+        Returns:
+            Tuple of (ProcessingResponse, PDF BytesIO) if cached, None otherwise
+        """
+        if not self.enabled:
+            return None
+
+        try:
+            cache_key = self._generate_cache_key(content, prefix)
+
+            # Get from Redis
+            cached_data = self.redis_client.get(cache_key)
+
+            if cached_data is None:
+                logger.info(f"Cache MISS for {description}: {content[:50]}...")
+                return None
+
+            # Deserialize
+            data = json.loads(cached_data)
+
+            # Reconstruct ProcessingResponse
+            response = ProcessingResponse(**data['response'])
+
+            # Reconstruct PDF BytesIO from base64
+            import base64
+            pdf_bytes = base64.b64decode(data['pdf_base64'])
+            pdf_buffer = BytesIO(pdf_bytes)
+
+            logger.info(f"✓ Cache HIT for {description}: {content[:50]}... (saved processing time)")
+
+            return response, pdf_buffer
+
+        except Exception as e:
+            logger.error(f"Error retrieving from cache: {e}")
+            return None
 
     def get_cached_result(
         self,
@@ -87,49 +139,23 @@ class CacheService:
         Returns:
             Tuple of (ProcessingResponse, PDF BytesIO) if cached, None otherwise
         """
-        if not self.enabled:
-            return None
+        return self._get_cached_result_generic(url, "playstore", "PlayStore URL")
 
-        try:
-            cache_key = self._generate_cache_key(url)
-
-            # Get from Redis
-            cached_data = self.redis_client.get(cache_key)
-
-            if cached_data is None:
-                logger.info(f"Cache MISS for URL: {url[:50]}...")
-                return None
-
-            # Deserialize
-            data = json.loads(cached_data)
-
-            # Reconstruct ProcessingResponse
-            response = ProcessingResponse(**data['response'])
-
-            # Reconstruct PDF BytesIO from base64
-            import base64
-            pdf_bytes = base64.b64decode(data['pdf_base64'])
-            pdf_buffer = BytesIO(pdf_bytes)
-
-            logger.info(f"✓ Cache HIT for URL: {url[:50]}... (saved ~20s)")
-
-            return response, pdf_buffer
-
-        except Exception as e:
-            logger.error(f"Error retrieving from cache: {e}")
-            return None
-
-    def cache_result(
+    def _cache_result_generic(
         self,
-        url: str,
+        content: str,
+        prefix: str,
+        description: str,
         response: ProcessingResponse,
         pdf_buffer: BytesIO
     ) -> bool:
         """
-        Cache result for a PlayStore URL
+        Generic method to cache result
 
         Args:
-            url: PlayStore URL
+            content: Content to hash
+            prefix: Cache key prefix
+            description: Description for logging
             response: ProcessingResponse object
             pdf_buffer: PDF BytesIO buffer
 
@@ -140,7 +166,7 @@ class CacheService:
             return False
 
         try:
-            cache_key = self._generate_cache_key(url)
+            cache_key = self._generate_cache_key(content, prefix)
 
             # Serialize PDF to base64
             import base64
@@ -163,13 +189,32 @@ class CacheService:
                 serialized_data
             )
 
-            logger.info(f"✓ Cached result for URL: {url[:50]}... (TTL: 7 days)")
+            logger.info(f"✓ Cached result for {description}: {content[:50]}... (TTL: 7 days)")
 
             return True
 
         except Exception as e:
             logger.error(f"Error caching result: {e}")
             return False
+
+    def cache_result(
+        self,
+        url: str,
+        response: ProcessingResponse,
+        pdf_buffer: BytesIO
+    ) -> bool:
+        """
+        Cache result for a PlayStore URL
+
+        Args:
+            url: PlayStore URL
+            response: ProcessingResponse object
+            pdf_buffer: PDF BytesIO buffer
+
+        Returns:
+            True if cached successfully, False otherwise
+        """
+        return self._cache_result_generic(url, "playstore", "PlayStore URL", response, pdf_buffer)
 
     def invalidate_cache(self, url: str) -> bool:
         """
@@ -224,6 +269,80 @@ class CacheService:
         except Exception as e:
             logger.error(f"Error clearing cache: {e}")
             return False
+
+    # ========== CSV Cache Methods ==========
+
+    def get_cached_csv_result(
+        self,
+        csv_content: str
+    ) -> Optional[Tuple[ProcessingResponse, BytesIO]]:
+        """
+        Get cached result for CSV file content
+
+        Args:
+            csv_content: Content of the CSV file
+
+        Returns:
+            Tuple of (ProcessingResponse, PDF BytesIO) if cached, None otherwise
+        """
+        return self._get_cached_result_generic(csv_content, "csv", "CSV file")
+
+    def cache_csv_result(
+        self,
+        csv_content: str,
+        response: ProcessingResponse,
+        pdf_buffer: BytesIO
+    ) -> bool:
+        """
+        Cache result for CSV file content
+
+        Args:
+            csv_content: Content of the CSV file
+            response: ProcessingResponse object
+            pdf_buffer: PDF BytesIO buffer
+
+        Returns:
+            True if cached successfully, False otherwise
+        """
+        return self._cache_result_generic(csv_content, "csv", "CSV file", response, pdf_buffer)
+
+    # ========== Single Comment Cache Methods ==========
+
+    def get_cached_comment_result(
+        self,
+        comment: str
+    ) -> Optional[Tuple[ProcessingResponse, BytesIO]]:
+        """
+        Get cached result for single comment
+
+        Args:
+            comment: Comment text
+
+        Returns:
+            Tuple of (ProcessingResponse, PDF BytesIO) if cached, None otherwise
+        """
+        return self._get_cached_result_generic(comment, "comment", "single comment")
+
+    def cache_comment_result(
+        self,
+        comment: str,
+        response: ProcessingResponse,
+        pdf_buffer: BytesIO
+    ) -> bool:
+        """
+        Cache result for single comment
+
+        Args:
+            comment: Comment text
+            response: ProcessingResponse object
+            pdf_buffer: PDF BytesIO buffer
+
+        Returns:
+            True if cached successfully, False otherwise
+        """
+        return self._cache_result_generic(comment, "comment", "single comment", response, pdf_buffer)
+
+    # ========== Cache Management Methods ==========
 
     def get_cache_stats(self) -> dict:
         """

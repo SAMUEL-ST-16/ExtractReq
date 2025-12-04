@@ -33,7 +33,7 @@ class OrchestratorService:
         comment: str
     ) -> Tuple[ProcessingResponse, BytesIO]:
         """
-        Process a single comment and generate both JSON and PDF
+        Process a single comment and generate both JSON and PDF with Redis caching
 
         Args:
             comment: User comment
@@ -42,6 +42,13 @@ class OrchestratorService:
             Tuple of (ProcessingResponse, PDF buffer)
         """
         logger.info("Orchestrating single comment processing")
+
+        # Check cache first
+        cached_result = cache_service.get_cached_comment_result(comment)
+        if cached_result is not None:
+            logger.info("✓ Returning cached result for comment")
+            return cached_result
+
         start_time = time.time()
 
         # Process comment
@@ -64,6 +71,12 @@ class OrchestratorService:
 
         logger.info(f"Single comment processed in {processing_time_ms:.2f}ms")
 
+        # Cache the result
+        cache_service.cache_comment_result(comment, response, pdf_buffer)
+
+        # Reset PDF buffer position after caching
+        pdf_buffer.seek(0)
+
         return response, pdf_buffer
 
     async def process_csv_file(
@@ -71,7 +84,7 @@ class OrchestratorService:
         file: UploadFile
     ) -> Tuple[ProcessingResponse, BytesIO]:
         """
-        Process CSV file with multiple comments
+        Process CSV file with multiple comments with Redis caching
 
         Args:
             file: Uploaded CSV file
@@ -83,7 +96,6 @@ class OrchestratorService:
             FileProcessingException: If CSV processing fails
         """
         logger.info(f"Orchestrating CSV file processing: {file.filename}")
-        start_time = time.time()
 
         try:
             # Read CSV file
@@ -105,6 +117,14 @@ class OrchestratorService:
                 raise FileProcessingException(
                     "Could not decode CSV file. Please ensure file is in UTF-8, Latin-1, or Windows-1252 encoding."
                 )
+
+            # Check cache using CSV content (not filename)
+            cached_result = cache_service.get_cached_csv_result(csv_text)
+            if cached_result is not None:
+                logger.info(f"✓ Returning cached result for CSV file: {file.filename}")
+                return cached_result
+
+            start_time = time.time()
 
             # Parse CSV
             comments = self._parse_csv(csv_text)
@@ -130,6 +150,12 @@ class OrchestratorService:
             pdf_buffer = pdf_service.generate_pdf(response)
 
             logger.info(f"CSV processed in {processing_time_ms:.2f}ms")
+
+            # Cache the result using CSV content
+            cache_service.cache_csv_result(csv_text, response, pdf_buffer)
+
+            # Reset PDF buffer position after caching
+            pdf_buffer.seek(0)
 
             return response, pdf_buffer
 
