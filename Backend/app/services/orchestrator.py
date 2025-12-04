@@ -167,8 +167,8 @@ class OrchestratorService:
     async def process_playstore_url(
         self,
         url: str,
-        target_requirements: int = 30,
-        max_total_reviews: int = 500
+        target_requirements: int = 2000,
+        max_total_reviews: int = 10000
     ) -> Tuple[ProcessingResponse, BytesIO]:
         """
         Smart processing of Google Play Store URL with Redis caching
@@ -176,16 +176,16 @@ class OrchestratorService:
         Strategy:
         1. Check cache first - return instantly if cached
         2. If not cached:
-           - Scrape comments with quality filters (2-3 stars, 15+ words)
-           - Process progressively until finding target_requirements valid requirements
+           - Scrape comments with quality filters (1-3 stars, 10+ words)
+           - Process progressively until finding target_requirements valid comments
            - Stop if max_total_reviews is reached
            - Cache the result for 7 days
         3. Return detailed statistics
 
         Args:
             url: Play Store app URL
-            target_requirements: Target number of valid requirements (default: 30)
-            max_total_reviews: Maximum total reviews to scrape (default: 500)
+            target_requirements: Target number of valid comments (default: 2000)
+            max_total_reviews: Maximum total reviews to scrape (default: 10000)
 
         Returns:
             Tuple of (ProcessingResponse, PDF buffer)

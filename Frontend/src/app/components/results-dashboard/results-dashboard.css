@@ -508,14 +508,17 @@
 }
 
 .card-stat .stat-label {
-  color: var(--muted-foreground);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .card-stat .stat-value {
-  color: var(--foreground);
+  color: white;
   font-weight: 700;
   font-size: 1.25rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  display: inline-block;
 }
 
 /* ==================== NO RESULTS ==================== */

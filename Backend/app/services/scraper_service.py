@@ -19,15 +19,15 @@ class ScraperService:
     Service for scraping Google Play Store reviews with intelligent filtering
 
     Filters applied:
-    - Rating: 2-3 stars (critical but not extreme)
-    - Minimum words: 15+ words per comment
-    - Smart limits: Max 30 valid requirements, max 500 comments reviewed
+    - Rating: 1-3 stars (critical feedback)
+    - Minimum words: 10+ words per comment
+    - Smart limits: Max 2000 valid comments, max 10000 reviews analyzed
     """
 
     # Quality filters
-    MIN_RATING = 2
+    MIN_RATING = 1
     MAX_RATING = 3
-    MIN_WORDS = 15
+    MIN_WORDS = 10
 
     def __init__(self):
         """Initialize scraper service"""
@@ -97,8 +97,8 @@ class ScraperService:
     def scrape_reviews_smart(
         self,
         url: str,
-        target_valid_comments: int = 30,
-        max_total_reviews: int = 500,
+        target_valid_comments: int = 2000,
+        max_total_reviews: int = 10000,
         language: str = 'es',
         country: str = 'us'
     ) -> Tuple[List[ScrapedComment], Dict]:
@@ -221,8 +221,8 @@ class ScraperService:
     def get_comments_only_smart(
         self,
         url: str,
-        target_comments: int = 30,
-        max_total: int = 500
+        target_comments: int = 2000,
+        max_total: int = 10000
     ) -> Tuple[List[str], Dict]:
         """
         Smart scraping that returns only comment texts with statistics

@@ -152,10 +152,10 @@ async def process_playstore_url(request: PlayStoreURLRequest):
     Process Google Play Store URL with intelligent filtering and return PDF report
 
     Smart scraping filters:
-    - Rating: 2-3 stars (critical feedback)
-    - Minimum: 15+ words per comment
-    - Target: 30 valid requirements
-    - Maximum: 500 reviews analyzed
+    - Rating: 1-3 stars (critical feedback)
+    - Minimum: 10+ words per comment
+    - Target: 2000 valid comments
+    - Maximum: 10000 reviews analyzed
 
     Args:
         request: Play Store URL request
@@ -166,11 +166,11 @@ async def process_playstore_url(request: PlayStoreURLRequest):
     try:
         logger.info(f"Processing Play Store URL with smart scraping: {request.url}")
 
-        # Process with smart scraping (30 requirements, max 500 reviews)
+        # Process with smart scraping (2000 comments, max 10000 reviews)
         response, pdf_buffer = await orchestrator_service.process_playstore_url(
             request.url,
-            target_requirements=30,
-            max_total_reviews=500
+            target_requirements=2000,
+            max_total_reviews=10000
         )
 
         # Return PDF as streaming response
@@ -277,10 +277,10 @@ async def analyze_playstore_url(request: PlayStoreURLRequest):
     Analyze Google Play Store URL with intelligent filtering and return JSON results
 
     Smart scraping filters:
-    - Rating: 2-3 stars (critical feedback)
-    - Minimum: 15+ words per comment
-    - Target: 30 valid requirements
-    - Maximum: 500 reviews analyzed
+    - Rating: 1-3 stars (critical feedback)
+    - Minimum: 10+ words per comment
+    - Target: 2000 valid comments
+    - Maximum: 10000 reviews analyzed
 
     Returns detailed statistics including:
     - total_scraped: Total reviews checked
@@ -300,8 +300,8 @@ async def analyze_playstore_url(request: PlayStoreURLRequest):
         # Process with smart scraping
         response, _ = await orchestrator_service.process_playstore_url(
             request.url,
-            target_requirements=30,
-            max_total_reviews=500
+            target_requirements=100,
+            max_total_reviews=2000
         )
 
         return response

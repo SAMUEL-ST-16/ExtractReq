@@ -190,12 +190,12 @@
                   </div>
                   <div class="card-body">
                     <div class="card-stat">
-                      <span class="stat-label">Requisitos:</span>
-                      <span class="stat-value">{{ stat.count }}</span>
+                      <span class="stat-label" [style.color]="stat.color">Requisitos:</span>
+                      <span class="stat-value" [style.background-color]="stat.color">{{ stat.count }}</span>
                     </div>
                     <div class="card-stat">
-                      <span class="stat-label">Porcentaje:</span>
-                      <span class="stat-value">{{ stat.percentage | number: '1.1-1' }}%</span>
+                      <span class="stat-label" [style.color]="stat.color">Porcentaje:</span>
+                      <span class="stat-value" [style.background-color]="stat.color">{{ stat.percentage | number: '1.1-1' }}%</span>
                     </div>
                   </div>
                 </div>
